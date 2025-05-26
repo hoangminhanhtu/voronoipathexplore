@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import json
 import math
 import random
 import time
@@ -14,11 +13,18 @@ from matplotlib.patches import Circle
 from shapely.ops import unary_union
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 
-from scipy.spatial import Delaunay, KDTree
+from scipy.spatial import KDTree
 import heapq
 
+from laser_io import load_and_filter
+from draw_utils import (
+    draw_beta_shape,
+    draw_beta_triangles,
+    draw_path,
+)
+
 # === CONFIGURATION ===
-LASER_FILE       = Path("list_file_laser/FileLaserPoint5.js")
+LASER_FILE       = Path("list_file_laser/FileLaserPoint6.js")
 MAX_RANGE        = 10.0       # max sensor range (m)
 ROBOT_DIAMETER   = 0.6        # robot diameter (m)
 ROBOT_RADIUS     = ROBOT_DIAMETER / 2
@@ -30,25 +36,7 @@ K_NEIGHBORS      = 10         # k in k‐NN for roadmap
 ANIM_INTERVAL_MS = 200  
 
 # === LOAD & FILTER LIDAR POINTS ===
-def load_and_filter(js_path: Path) -> np.ndarray:
-    """Load LIDAR points, drop any within (ROBOT_RADIUS + BETA) of START."""
-    if not js_path.is_file():
-        raise FileNotFoundError(f"Laser file not found: {js_path}")
-    raw = json.loads(
-        "".join(
-            line for line in js_path.open(encoding="utf-8")
-            if not line.lstrip().startswith("//") and line.strip()
-        )
-    ).get("laser", [])
-    pts = []
-    for p in raw:
-        r, θ = p.get("distance", 0.0), p.get("angle", 0.0)
-        if 0 < r < MAX_RANGE:
-            x, y = r * math.cos(θ), r * math.sin(θ)
-            # filter out LIDAR returns too close to start
-            if math.hypot(x - START[0], y - START[1]) > (ROBOT_RADIUS + BETA):
-                pts.append((x, y))
-    return np.array(pts)
+# Provided by laser_io.load_and_filter
 
 # === BUILD INFLATED OBSTACLE SHAPE ===
 def build_obstacle_shape(points: np.ndarray, inflate: float) -> Polygon:
@@ -129,35 +117,6 @@ def shortest_path_prm(nodes: np.ndarray,
         cur = prev[cur]
     return np.array(path[::-1])
 
-# === DRAWING HELPERS ===
-def circumradius(pts: np.ndarray) -> float:
-    a = np.linalg.norm(pts[1] - pts[0])
-    b = np.linalg.norm(pts[2] - pts[1])
-    c = np.linalg.norm(pts[0] - pts[2])
-    s = (a + b + c) / 2
-    area = max(s * (s - a) * (s - b) * (s - c), 0.0)**0.5
-    return (a * b * c) / (4 * area) if area > 1e-6 else float('inf')
-
-def draw_beta_shape(ax, shape: Polygon):
-    geoms = shape.geoms if isinstance(shape, MultiPolygon) else [shape]
-    for poly in geoms:
-        x, y = poly.exterior.xy
-        ax.plot(x, y, color='blue', alpha=0.5, linewidth=1, label='β-shape')
-
-def draw_beta_triangles(ax, pts: np.ndarray, beta: float):
-    if len(pts) < 3:
-        return
-    tri = Delaunay(pts)
-    shown = False
-    for s in tri.simplices:
-        tri_pts = pts[s]
-        if circumradius(tri_pts) <= beta:
-            loop = np.vstack([tri_pts, tri_pts[0]])
-            lbl = 'β-triangle' if not shown else ''
-            ax.plot(loop[:,0], loop[:,1],
-                    color='green', alpha=0.6, linewidth=1, label=lbl)
-            shown = True
-
 def draw_prm_edges(ax, nodes: np.ndarray, edges: dict):
     """Draw every PRM edge once in light grey."""
     for i, nbrs in edges.items():
@@ -171,12 +130,6 @@ def draw_prm_edges(ax, nodes: np.ndarray, edges: dict):
 def draw_prm_nodes(ax, nodes: np.ndarray):
     ax.scatter(nodes[:,0], nodes[:,1],
                c='grey', s=10, label='PRM nodes')
-
-def draw_path(ax, path: np.ndarray):
-    ax.plot(path[:,0], path[:,1],
-            color='red', linewidth=2, label='PRM path')
-    ax.add_patch(Circle(tuple(path[0]), ROBOT_RADIUS,
-                        alpha=0.3, label='start'))
 
 # === ANIMATION ===
 def animate_prm(path: np.ndarray,
@@ -196,7 +149,7 @@ def animate_prm(path: np.ndarray,
 
     draw_prm_edges(ax, prm_nodes, edges)
     draw_prm_nodes(ax, prm_nodes)
-    draw_path(ax, path)
+    draw_path(ax, path, ROBOT_RADIUS, label='PRM path')
 
     robot = Circle((0,0), ROBOT_RADIUS, color='green', alpha=0.4)
     ax.add_patch(robot)
@@ -212,7 +165,12 @@ def animate_prm(path: np.ndarray,
 
 # === MAIN ===
 def main():
-    raw_pts   = load_and_filter(LASER_FILE)
+    raw_pts = load_and_filter(
+        LASER_FILE,
+        MAX_RANGE,
+        start=START,
+        exclude_radius=ROBOT_RADIUS + BETA,
+    )
     obs_shape = build_obstacle_shape(raw_pts, BETA + ROBOT_RADIUS)
 
     # Check START and GOAL for collisions

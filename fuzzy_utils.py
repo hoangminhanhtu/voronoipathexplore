@@ -1,4 +1,5 @@
-"""Fuzzy logic helper functions used across planners."""
+#!/usr/bin/env python3
+"""Fuzzy logic helpers for battery-aware planning."""
 
 from typing import Tuple
 
@@ -17,28 +18,30 @@ __all__ = [
 def fuzzify_battery(batt: float) -> Tuple[float, float, float]:
     """Return (low, medium, high) membership degrees for a battery level."""
     low = max(min((50.0 - batt) / 50.0, 1.0), 0.0)
-    high = max(min((batt - 50.0) / 50.0, 1.0), 0.0)
+    high = max(min((batt - 50.0) / 50.0, 1.0), 0.0
     med = max(1.0 - low - high, 0.0)
     return low, med, high
 
 
 def need_replan(batt_deg: Tuple[float, float, float]) -> bool:
+
     """Simple fuzzy decision whether to replan based on battery memberships."""
     low, med, _ = batt_deg
     replan_score = low * 1.0 + med * 0.5
     return replan_score > 0.5
 
 
-# --- Extended fuzzy logic used by PRM and RRT* planners ---
-
+# --- Extended fuzzy logic used by PRM and RRT* planners --
 def membership_battery(batt: float) -> Tuple[float, float, float]:
     low = max(min((50.0 - batt) / 50.0, 1.0), 0.0)
     high = max(min((batt - 50.0) / 50.0, 1.0), 0.0)
     medium = max(min(batt / 50.0, (100.0 - batt) / 50.0), 0.0)
+
     return low, medium, high
 
 
 def membership_distance(dist: float, max_dist: float) -> Tuple[float, float, float]:
+    """Membership degrees for remaining distance to goal."""
     short = max(min((max_dist - dist) / max_dist, 1.0), 0.0)
     if dist <= max_dist / 2.0:
         med = dist / (max_dist / 2.0)
@@ -49,6 +52,7 @@ def membership_distance(dist: float, max_dist: float) -> Tuple[float, float, flo
 
 
 def fuzzy_replan_decision(batt: float, dist: float, max_dist: float) -> bool:
+    """Return True if fuzzy logic suggests replanning."""
     b_low, b_med, b_high = membership_battery(batt)
     d_short, d_med, d_long = membership_distance(dist, max_dist)
     r_high = min(b_low, d_long)

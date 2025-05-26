@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-import json, math, random, time
+import random
+import time
 from pathlib import Path
 from typing import List, Tuple
 
@@ -13,7 +14,14 @@ from matplotlib.patches import Circle
 from shapely.ops import unary_union
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 
-from scipy.spatial import Delaunay
+from laser_io import load_and_filter
+from draw_utils import (
+    draw_beta_shape,
+    draw_beta_triangles,
+    draw_tree,
+    draw_path,
+)
+from fuzzy_utils import fuzzy_neighbor_radius
 
 # === CONFIGURATION ===
 LASER_FILE       = Path("list_file_laser/FileLaserPoint6.js")
@@ -34,25 +42,7 @@ BATTERY_CONSUMPTION_PER_STEP = 2.0   # percent battery per executed step
 X_STEP = 2                           # steps between replanning
 
 # === LOAD & FILTER LIDAR POINTS ===
-
-def load_and_filter(js_path: Path) -> np.ndarray:
-    """Load LIDAR points, drop those within (ROBOT_RADIUS + BETA) of START."""
-    if not js_path.is_file():
-        raise FileNotFoundError(f"Laser file not found: {js_path}")
-    raw = json.loads(
-        "".join(
-            line for line in js_path.open(encoding="utf-8")
-            if not line.lstrip().startswith("//") and line.strip()
-        )
-    ).get("laser", [])
-    pts = []
-    for p in raw:
-        r, θ = p.get("distance", 0.0), p.get("angle", 0.0)
-        if 0 < r < MAX_RANGE:
-            x, y = r * math.cos(θ), r * math.sin(θ)
-            if math.hypot(x - START[0], y - START[1]) > (ROBOT_RADIUS + BETA):
-                pts.append((x, y))
-    return np.array(pts)
+# Provided by ``laser_io.load_and_filter``
 
 
 # === BUILD INFLATED OBSTACLE SHAPE ===
@@ -175,63 +165,20 @@ def rrt_star_plan(start: np.ndarray,
 
 # === DRAWING & ANIMATION ===
 
-def circumradius(pts: np.ndarray) -> float:
-    a = np.linalg.norm(pts[1] - pts[0])
-    b = np.linalg.norm(pts[2] - pts[1])
-    c = np.linalg.norm(pts[0] - pts[2])
-    s = (a + b + c) / 2
-    area = max(s*(s-a)*(s-b)*(s-c), 0.0)**0.5
-    return (a*b*c)/(4*area) if area > 1e-6 else float('inf')
-
-def draw_beta_triangles(ax, points: np.ndarray, beta: float):
-    if len(points) < 3:
-        return
-    tri = Delaunay(points)
-    drawn = False
-    for s in tri.simplices:
-        verts = points[s]
-        if circumradius(verts) <= beta:
-            loop = np.vstack([verts, verts[0]])
-            lbl = "β-triangle" if not drawn else ""
-            ax.plot(loop[:,0], loop[:,1], color='green',
-                    linewidth=1.0, alpha=0.6, label=lbl)
-            drawn = True
-
-def draw_beta_shape(ax, shape: Polygon):
-    geoms = shape.geoms if isinstance(shape, MultiPolygon) else [shape]
-    for poly in geoms:
-        x, y = poly.exterior.xy
-        ax.plot(x, y, color='blue', linewidth=1.0,
-                alpha=0.5, label='β-shape')
-
-def draw_tree(ax, tree: List[Node]):
-    for n in tree:
-        if n.parent:
-            xs = [n.pos[0], n.parent.pos[0]]
-            ys = [n.pos[1], n.parent.pos[1]]
-            ax.plot(xs, ys, color='gray', linewidth=0.5)
-
-def draw_path(ax, path: np.ndarray):
-    ax.plot(path[:,0], path[:,1], color='red',
-            linewidth=2.0, label='final path')
-    ax.add_patch(Circle(tuple(path[0]), ROBOT_RADIUS,
-                        alpha=0.3, label='start'))
-
 def animate(path: np.ndarray, tree: List[Node],
             raw_pts: np.ndarray, obs_shape: Polygon):
-    fig, ax = plt.subplots(figsize=(10,10))
-    ax.set_aspect('equal','box')
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.set_aspect("equal", "box")
     ax.set_xlim(-MAX_RANGE, MAX_RANGE)
     ax.set_ylim(-MAX_RANGE, MAX_RANGE)
 
     draw_beta_shape(ax, obs_shape)
     draw_beta_triangles(ax, raw_pts, BETA)
-    ax.scatter(raw_pts[:,0], raw_pts[:,1], s=5,
-               c='black', label='lidar')
+    ax.scatter(raw_pts[:, 0], raw_pts[:, 1], s=5, c="black", label="lidar")
     draw_tree(ax, tree)
-    draw_path(ax, path)
+    draw_path(ax, path, ROBOT_RADIUS)
 
-    robot = Circle((0,0), ROBOT_RADIUS, color='green', alpha=0.4)
+    robot = Circle((0, 0), ROBOT_RADIUS, color="green", alpha=0.4)
     ax.add_patch(robot)
     txt = ax.text(0.02, 0.95, "", transform=ax.transAxes)
 
@@ -240,11 +187,15 @@ def animate(path: np.ndarray, tree: List[Node],
         txt.set_text(f"Step {i}")
         return robot, txt
 
-    anim = FuncAnimation(fig, update,
-                         frames=len(path),
-                         interval=ANIM_INTERVAL_MS,
-                         blit=True, repeat=False)
-    ax.legend(loc='upper right')
+    anim = FuncAnimation(
+        fig,
+        update,
+        frames=len(path),
+        interval=ANIM_INTERVAL_MS,
+        blit=True,
+        repeat=False,
+    )
+    ax.legend(loc="upper right")
     plt.show()
     return anim
 
@@ -289,7 +240,12 @@ def plan_with_replanning(start: np.ndarray,
 # === MAIN ===
 
 def main():
-    raw_pts   = load_and_filter(LASER_FILE)
+    raw_pts = load_and_filter(
+        LASER_FILE,
+        MAX_RANGE,
+        start=START,
+        exclude_radius=ROBOT_RADIUS + BETA,
+    )
     obs_shape = build_obstacle_shape(raw_pts, BETA + ROBOT_RADIUS)
 
     executed_path, tree, remaining_batt = plan_with_replanning(START, GOAL, obs_shape)

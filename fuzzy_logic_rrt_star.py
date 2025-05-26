@@ -33,7 +33,6 @@ ANIM_INTERVAL_MS = 200        # ms per animation frame
 BATTERY_CONSUMPTION_PER_STEP = 2.0   # percent battery per executed step
 X_STEP = 2                           # steps between replanning
 
-
 # === LOAD & FILTER LIDAR POINTS ===
 
 def load_and_filter(js_path: Path) -> np.ndarray:

@@ -15,6 +15,8 @@ from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 
 from scipy.spatial import Delaunay
 
+from fuzzy_utils import fuzzify_battery, need_replan
+
 # === CONFIGURATION ===
 LASER_FILE       = Path("list_file_laser/FileLaserPoint6.js")
 MAX_RANGE        = 10.0       # max sensor range (m)

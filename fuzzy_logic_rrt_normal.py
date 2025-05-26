@@ -21,9 +21,6 @@ from draw_utils import (
     draw_tree,
     draw_path,
 )
-from fuzzy_utils import fuzzify_battery, need_replan
-
-from fuzzy_utils import fuzzify_battery, need_replan
 
 # === CONFIGURATION ===
 LASER_FILE       = Path("list_file_laser/FileLaserPoint6.js")

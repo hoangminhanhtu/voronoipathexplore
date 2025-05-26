@@ -23,12 +23,8 @@ from draw_utils import (
     draw_beta_triangles,
     draw_path,
 )
-# fuzzy-logic helpers
-from fuzzy_utils import (
-    membership_battery,
-    membership_distance,
-    fuzzy_replan_decision,
-)
+
+
 import heapq
 
 # === CONFIGURATION ===

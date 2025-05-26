@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import json
-import math
 import random
 import time
 from pathlib import Path
@@ -12,6 +10,19 @@ from matplotlib.patches import Circle
 from shapely.geometry import Point, LineString, Polygon, MultiPolygon
 from shapely.ops import unary_union
 from scipy.spatial import Delaunay, KDTree
+
+from laser_io import load_and_filter
+from draw_utils import (
+    draw_beta_shape,
+    draw_beta_triangles,
+    draw_path,
+)
+# fuzzy-logic helpers
+from fuzzy_utils import (
+    membership_battery,
+    membership_distance,
+    fuzzy_replan_decision,
+)
 import heapq
 
 # === CONFIGURATION ===
@@ -29,49 +40,7 @@ X_STEP           = 2          # reevaluate every 2 steps
 STEP_COST        = 2.0        # battery % per step
 MAX_TRIES        = 5
 
-# === FUZZY LOGIC FOR REPLANNING ===
-def membership_battery(batt: float) -> Tuple[float,float,float]:
-    low    = max(min((50 - batt) / 50, 1), 0)
-    high   = max(min((batt - 50) / 50, 1), 0)
-    medium = max(min(batt / 50, (100 - batt) / 50), 0)
-    return low, medium, high
-
-def membership_distance(dist: float, max_dist: float) -> Tuple[float,float,float]:
-    short = max(min((max_dist - dist) / max_dist, 1), 0)
-    if dist <= max_dist / 2:
-        med = dist / (max_dist / 2)
-    else:
-        med = max((max_dist - dist) / (max_dist / 2), 0)
-    long_ = max(min(dist / max_dist, 1), 0)
-    return short, med, long_
-
-def fuzzy_replan_decision(batt: float, dist: float, max_dist: float) -> bool:
-    b_low, b_med, b_high   = membership_battery(batt)
-    d_short, d_med, d_long = membership_distance(dist, max_dist)
-    r_high = min(b_low,  d_long)
-    r_med  = max(min(b_med,  d_long),
-                 min(b_low,  d_med))
-    r_low  = min(b_high, d_short)
-    total = r_low + r_med + r_high + 1e-6
-    score = (r_low*0.25 + r_med*0.5 + r_high*0.75) / total
-    return score > 0.5
-
 # === PRM UTILITIES ===
-def load_and_filter(js_path: Path) -> np.ndarray:
-    raw = json.loads(
-        "".join(
-            line for line in js_path.open(encoding="utf-8")
-            if not line.lstrip().startswith("//") and line.strip()
-        )
-    ).get("laser", [])
-    pts = []
-    for p in raw:
-        r, θ = p.get("distance", 0.0), p.get("angle", 0.0)
-        if 0 < r < MAX_RANGE:
-            x, y = r * math.cos(θ), r * math.sin(θ)
-            if math.hypot(x - START[0], y - START[1]) > (ROBOT_RADIUS + BETA):
-                pts.append((x, y))
-    return np.array(pts)
 
 def build_obstacle_shape(points: np.ndarray, inflate: float) -> Polygon:
     circles = [Point(x,y).buffer(inflate) for x,y in points]
@@ -131,30 +100,6 @@ def shortest_path_prm(nodes: np.ndarray, edges: dict,
 
 
 # === DRAWING HELPERS ===
-def circumradius(pts: np.ndarray) -> float:
-    a = np.linalg.norm(pts[1] - pts[0])
-    b = np.linalg.norm(pts[2] - pts[1])
-    c = np.linalg.norm(pts[0] - pts[2])
-    s = (a + b + c)/2
-    area = max(s*(s-a)*(s-b)*(s-c),0.0)**0.5
-    return (a*b*c)/(4*area) if area>1e-6 else float('inf')
-
-def draw_beta_shape(ax, shape: Polygon):
-    geoms = shape.geoms if isinstance(shape, MultiPolygon) else [shape]
-    for poly in geoms:
-        x,y = poly.exterior.xy
-        ax.plot(x, y, color='blue', alpha=0.5, linewidth=1)
-
-def draw_beta_triangles(ax, pts: np.ndarray, beta: float):
-    if len(pts) < 3: return
-    tri = Delaunay(pts)
-    for s in tri.simplices:
-        tri_pts = pts[s]
-        if circumradius(tri_pts) <= beta:
-            loop = np.vstack([tri_pts, tri_pts[0]])
-            ax.plot(loop[:,0], loop[:,1],
-                    color='green', alpha=0.6, linewidth=1)
-
 def draw_prm_edges(ax, nodes: np.ndarray, edges: dict):
     for i, nbrs in edges.items():
         for j,_ in nbrs:
@@ -168,11 +113,7 @@ def draw_prm_nodes(ax, nodes: np.ndarray):
     ax.scatter(nodes[:,0], nodes[:,1],
                c='grey', s=10)
 
-def draw_path(ax, path: np.ndarray):
-    ax.plot(path[:,0], path[:,1],
-            color='red', linewidth=2)
-    ax.add_patch(Circle(tuple(path[0]), ROBOT_RADIUS,
-                        alpha=0.3))
+# draw_path provided by draw_utils
 
 # === ANIMATION WITH TIMING & BATTERY PRINTS ===
 def animate_prm(path, prm_nodes, edges, raw_pts, obs_shape):
@@ -191,7 +132,7 @@ def animate_prm(path, prm_nodes, edges, raw_pts, obs_shape):
     ax.scatter(raw_pts[:,0], raw_pts[:,1], s=5, c='black')
     draw_prm_edges(ax, prm_nodes, edges)
     draw_prm_nodes(ax, prm_nodes)
-    draw_path(ax, path)
+    draw_path(ax, path, ROBOT_RADIUS)
 
     robot    = Circle((0,0), ROBOT_RADIUS, color='green', alpha=0.4)
     txt_batt = ax.text(0.02, 0.92, "", transform=ax.transAxes)
@@ -245,7 +186,12 @@ def animate_prm(path, prm_nodes, edges, raw_pts, obs_shape):
 
 # === MAIN ===
 def main():
-    raw_pts   = load_and_filter(LASER_FILE)
+    raw_pts = load_and_filter(
+        LASER_FILE,
+        MAX_RANGE,
+        start=START,
+        exclude_radius=ROBOT_RADIUS + BETA,
+    )
     obs_shape = build_obstacle_shape(raw_pts, BETA + ROBOT_RADIUS)
 
     t_start = time.time()

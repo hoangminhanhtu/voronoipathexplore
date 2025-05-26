@@ -3,6 +3,7 @@ import random
 import time
 from pathlib import Path
 from typing import Tuple
+import config
 
 from fuzzy_utils import (
     membership_battery,
@@ -28,19 +29,19 @@ from draw_utils import (
 import heapq
 
 # === CONFIGURATION ===
-LASER_FILE       = Path("list_file_laser/FileLaserPoint6.js")
-MAX_RANGE        = 10.0       # max sensor range (m)
-ROBOT_DIAMETER   = 0.6        # robot diameter (m)
-ROBOT_RADIUS     = ROBOT_DIAMETER / 2
-BETA             = 0.3        # obstacle inflation radius (m)
-START            = np.array([0.0, 0.0])
-GOAL             = np.array([-3.0, -5.0])
-N_SAMPLES        = 200        # number of random PRM nodes
-K_NEIGHBORS      = 10         # k in k‐NN for roadmap
-ANIM_INTERVAL_MS = 200        # ms between frames
-X_STEP           = 2          # reevaluate every 2 steps
-STEP_COST        = 2.0        # battery % per step
-MAX_TRIES        = 5
+LASER_FILE       = config.LASER_FILE
+MAX_RANGE        = config.MAX_RANGE
+ROBOT_DIAMETER   = config.ROBOT_DIAMETER
+ROBOT_RADIUS     = config.ROBOT_RADIUS
+BETA             = config.BETA
+START            = config.START
+GOAL             = config.GOAL
+N_SAMPLES        = config.N_SAMPLES
+K_NEIGHBORS      = config.K_NEIGHBORS
+ANIM_INTERVAL_MS = config.ANIM_INTERVAL_MS
+X_STEP           = config.X_STEP
+STEP_COST        = config.STEP_COST
+MAX_TRIES        = config.MAX_TRIES
 
 # === PRM UTILITIES ===
 

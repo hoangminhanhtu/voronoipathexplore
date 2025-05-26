@@ -3,6 +3,8 @@ import json, math, random, time
 from pathlib import Path
 from typing import List, Tuple
 
+from fuzzy_utils import fuzzify_battery, need_replan
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation

@@ -164,7 +164,8 @@ def animate(path: np.ndarray, tree: List[Node],
     ax.scatter(raw_pts[:,0], raw_pts[:,1], s=5,
                c='black', label='lidar')
     draw_tree(ax, tree)
-    draw_path(ax, path)
+    # pass the robot radius to show the start circle
+    draw_path(ax, path, ROBOT_RADIUS)
 
     robot = Circle((0,0), ROBOT_RADIUS, color='green', alpha=0.4)
     ax.add_patch(robot)

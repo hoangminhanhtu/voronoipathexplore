@@ -18,7 +18,7 @@ __all__ = [
 def fuzzify_battery(batt: float) -> Tuple[float, float, float]:
     """Return (low, medium, high) membership degrees for a battery level."""
     low = max(min((50.0 - batt) / 50.0, 1.0), 0.0)
-    high = max(min((batt - 50.0) / 50.0, 1.0), 0.0
+    high = max(min((batt - 50.0) / 50.0, 1.0), 0.0)
     med = max(1.0 - low - high, 0.0)
     return low, med, high
 
@@ -65,10 +65,16 @@ def fuzzy_replan_decision(batt: float, dist: float, max_dist: float) -> bool:
 
 def fuzzy_neighbor_radius(batt: float, *, default_radius: float = 1.0) -> float:
     """Return a neighbor radius for RRT* based on remaining battery."""
+    
     low = max(min((30.0 - batt) / 30.0, 1.0), 0.0)
+    
     med = max(min((batt - 20.0) / 30.0, (80.0 - batt) / 30.0), 0.0)
+    
     high = max(min((batt - 50.0) / 50.0, 1.0), 0.0)
+    
     weight_sum = low + med + high
+    
     if weight_sum == 0.0:
         return default_radius
+
     return (low * 0.5 + med * 1.0 + high * 1.5) / weight_sum

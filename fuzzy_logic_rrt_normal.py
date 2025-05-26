@@ -3,6 +3,8 @@ import json, math, random, time
 from pathlib import Path
 from typing import List, Tuple
 
+from fuzzy_utils import fuzzify_battery, need_replan
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -30,33 +32,6 @@ ANIM_INTERVAL_MS = 200        # ms per frame
 BATTERY_INIT          = 100.0   # initial battery percentage
 BATTERY_COST_PER_STEP = 2.0     # battery cost per step in percent
 X_STEP                = 2       # reevaluate plan every X_STEP steps
-
-def fuzzify_battery(batt: float) -> Tuple[float, float, float]:
-    """
-    Simple triangular memberships for battery level:
-      - low    : full membership at batt=0, zero at batt>=50
-      - medium : peak at batt=50, tapering to zero at batt=30 and batt=80
-      - high   : zero at batt<=50, full at batt=100
-    """
-    # low membership: 1 at batt<=0, 0 at batt>=50
-    low = max(min((50 - batt) / 50, 1.0), 0.0)
-    # high membership: 0 at batt<=50, 1 at batt>=100
-    high = max(min((batt - 50) / 50, 1.0), 0.0)
-    # medium = 1 − low − high
-    med = max(1.0 - low - high, 0.0)
-    return low, med, high
-
-def need_replan(batt_deg: Tuple[float, float, float]) -> bool:
-    """
-    Fuzzy inference: we compute a simple 'replan_score' where
-      - low contributes 1.0
-      - medium contributes 0.5
-      - high contributes 0.0
-    If replan_score > 0.5, we trigger a replan.
-    """
-    low, med, high = batt_deg
-    replan_score = low * 1.0 + med * 0.5
-    return replan_score > 0.5
 
 # === LOAD & FILTER POINTS ===
 

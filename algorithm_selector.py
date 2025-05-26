@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Run a chosen path-planning algorithm on a given scan file."""
+
+"""Select and run a planner based on fuzzy logic."""
 
 from pathlib import Path
 import config
+from fuzzy_utils import membership_battery
+
 import fuzzy_logic_prm
 import fuzzy_logic_rrt_normal
 import fuzzy_logic_rrt_star
@@ -30,7 +33,7 @@ def run_planner_for_scan(scan_file: str, algorithm: str) -> None:
 
 if __name__ == "__main__":
     import sys
-
+    
     if len(sys.argv) < 3:
         names = ", ".join(sorted(PLANNERS))
         raise SystemExit(

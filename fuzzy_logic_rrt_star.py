@@ -3,6 +3,8 @@ import json, math, random, time
 from pathlib import Path
 from typing import List, Tuple
 
+from fuzzy_utils import fuzzy_neighbor_radius
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -30,29 +32,6 @@ ANIM_INTERVAL_MS = 200        # ms per animation frame
 # === BATTERY & REPLANNING ===
 BATTERY_CONSUMPTION_PER_STEP = 2.0   # percent battery per executed step
 X_STEP = 2                           # steps between replanning
-
-def fuzzy_neighbor_radius(batt: float) -> float:
-    """
-    Fuzzy‐logic to adjust NEIGHBOR_RADIUS based on remaining battery.
-    Membership functions (triangular):
-      - low:    peak at 0, declines to zero at 30%
-      - medium: peak at 50%, declines to zero at 20% and 80%
-      - high:   peak at 100%, declines to zero at 50%
-    Rule outputs for radius (m):
-      low    → 0.5
-      medium → 1.0
-      high   → 1.5
-    """
-    # membership degrees
-    low = max(min((30.0 - batt) / 30.0, 1.0), 0.0)
-    med = max(min((batt - 20.0) / 30.0, (80.0 - batt) / 30.0), 0.0)
-    high = max(min((batt - 50.0) / 50.0, 1.0), 0.0)
-
-    # defuzzify by weighted average
-    weight_sum = low + med + high
-    if weight_sum == 0:
-        return NEIGHBOR_RADIUS
-    return (low * 0.5 + med * 1.0 + high * 1.5) / weight_sum
 
 
 # === LOAD & FILTER LIDAR POINTS ===

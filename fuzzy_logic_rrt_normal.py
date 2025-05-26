@@ -3,6 +3,7 @@ import random
 import time
 from pathlib import Path
 from typing import List, Tuple
+import config
 
 from fuzzy_utils import fuzzify_battery, need_replan
 
@@ -23,22 +24,22 @@ from draw_utils import (
 )
 
 # === CONFIGURATION ===
-LASER_FILE       = Path("list_file_laser/FileLaserPoint6.js")
-MAX_RANGE        = 10.0       # max sensor range (m)
-ROBOT_DIAMETER   = 0.6        # robot diameter (m)
-ROBOT_RADIUS     = ROBOT_DIAMETER / 2
-BETA             = 0.3        # obstacle inflation radius (m)
-START            = np.array([0.0, 0.0])
-GOAL             = np.array([-3.0, -5.0])
-GOAL_BIAS        = 0.1        # 10% goal sampling
-MAX_ITERS        = 5000
-STEP_SIZE        = 0.6        # extension step (m)
-ANIM_INTERVAL_MS = 200        # ms per frame
+LASER_FILE       = config.LASER_FILE
+MAX_RANGE        = config.MAX_RANGE
+ROBOT_DIAMETER   = config.ROBOT_DIAMETER
+ROBOT_RADIUS     = config.ROBOT_RADIUS
+BETA             = config.BETA
+START            = config.START
+GOAL             = config.GOAL
+GOAL_BIAS        = config.GOAL_BIAS
+MAX_ITERS        = config.MAX_ITERS
+STEP_SIZE        = config.STEP_SIZE
+ANIM_INTERVAL_MS = config.ANIM_INTERVAL_MS
 
 # === FUZZY BATTERY LOGIC CONFIGURATION ===
-BATTERY_INIT          = 100.0   # initial battery percentage
-BATTERY_COST_PER_STEP = 2.0     # battery cost per step in percent
-X_STEP                = 2       # reevaluate plan every X_STEP steps
+BATTERY_INIT          = config.BATTERY_LEVEL
+BATTERY_COST_PER_STEP = config.BATTERY_CONSUMPTION_PER_STEP
+X_STEP                = config.X_STEP
 
 # === LOAD & FILTER POINTS ===
 # Handled by ``laser_io.load_and_filter``

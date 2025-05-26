@@ -24,7 +24,7 @@ from draw_utils import (
 )
 
 # === CONFIGURATION ===
-LASER_FILE       = Path("list_file_laser/FileLaserPoint5.js")
+LASER_FILE       = Path("list_file_laser/FileLaserPoint6.js")
 MAX_RANGE        = 10.0       # max sensor range (m)
 ROBOT_DIAMETER   = 0.6        # robot diameter (m)
 ROBOT_RADIUS     = ROBOT_DIAMETER / 2

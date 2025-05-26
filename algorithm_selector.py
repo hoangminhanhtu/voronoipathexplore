@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 """Select and run a planner based on fuzzy logic."""
 
 from pathlib import Path
@@ -17,33 +18,27 @@ PLANNERS = {
 }
 
 
-def choose_algorithm(battery: float) -> str:
-    """Return planner name chosen from battery level using fuzzy logic."""
-    low, med, high = membership_battery(battery)
-    scores = {
-        "rrt_star": 0.6 * high + 0.3 * med + 0.1 * low,
-        "prm": 0.6 * med + 0.3 * high + 0.1 * low,
-        "rrt": 0.6 * low + 0.3 * med + 0.1 * high,
-    }
-    return max(scores, key=scores.get)
-
-
-def run_planner_for_scan(scan_file: str) -> None:
-    """Load given scan file and run the selected planner."""
+def run_planner_for_scan(scan_file: str, algorithm: str) -> None:
+    """Run the chosen planner on ``scan_file``."""
     config.LASER_FILE = Path(scan_file)
 
-    algo = choose_algorithm(config.BATTERY_LEVEL)
-    print(f"Selected planner via fuzzy logic: {algo}")
+    if algorithm not in PLANNERS:
+        names = ", ".join(sorted(PLANNERS))
+        raise ValueError(f"algorithm must be one of: {names}")
 
-    planner = PLANNERS[algo]
+    planner = PLANNERS[algorithm]
     planner.LASER_FILE = config.LASER_FILE
     planner.main()
 
 
 if __name__ == "__main__":
     import sys
+    
+    if len(sys.argv) < 3:
+        names = ", ".join(sorted(PLANNERS))
+        raise SystemExit(
+            f"Usage: algorithm_selector.py <scan_file.js> <algorithm>\n"
+            f"Where <algorithm> is one of: {names}"
+        )
 
-    if len(sys.argv) < 2:
-        raise SystemExit("Usage: algorithm_selector.py <scan_file.js>")
-
-    run_planner_for_scan(sys.argv[1])
+    run_planner_for_scan(sys.argv[1], sys.argv[2])

@@ -4,6 +4,8 @@ import time
 from pathlib import Path
 from typing import List, Tuple
 
+from fuzzy_utils import fuzzy_neighbor_radius
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation

@@ -4,6 +4,12 @@ import time
 from pathlib import Path
 from typing import Tuple
 
+from fuzzy_utils import (
+    membership_battery,
+    membership_distance,
+    fuzzy_replan_decision,
+)
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle

@@ -6,6 +6,12 @@ import time
 from pathlib import Path
 from typing import Tuple
 
+from fuzzy_utils import (
+    membership_battery,
+    membership_distance,
+    fuzzy_replan_decision,
+)
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
@@ -30,31 +36,6 @@ STEP_COST        = 2.0        # battery % per step
 MAX_TRIES        = 5
 
 # === FUZZY LOGIC FOR REPLANNING ===
-def membership_battery(batt: float) -> Tuple[float,float,float]:
-    low    = max(min((50 - batt) / 50, 1), 0)
-    high   = max(min((batt - 50) / 50, 1), 0)
-    medium = max(min(batt / 50, (100 - batt) / 50), 0)
-    return low, medium, high
-
-def membership_distance(dist: float, max_dist: float) -> Tuple[float,float,float]:
-    short = max(min((max_dist - dist) / max_dist, 1), 0)
-    if dist <= max_dist / 2:
-        med = dist / (max_dist / 2)
-    else:
-        med = max((max_dist - dist) / (max_dist / 2), 0)
-    long_ = max(min(dist / max_dist, 1), 0)
-    return short, med, long_
-
-def fuzzy_replan_decision(batt: float, dist: float, max_dist: float) -> bool:
-    b_low, b_med, b_high   = membership_battery(batt)
-    d_short, d_med, d_long = membership_distance(dist, max_dist)
-    r_high = min(b_low,  d_long)
-    r_med  = max(min(b_med,  d_long),
-                 min(b_low,  d_med))
-    r_low  = min(b_high, d_short)
-    total = r_low + r_med + r_high + 1e-6
-    score = (r_low*0.25 + r_med*0.5 + r_high*0.75) / total
-    return score > 0.5
 
 # === PRM UTILITIES ===
 def load_and_filter(js_path: Path) -> np.ndarray:

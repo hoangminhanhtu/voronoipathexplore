@@ -10,6 +10,11 @@ BETA = 0.3
 START = np.array([0.0, 0.0])
 GOAL = np.array([-3.0, -5.0])
 
+# Automatic exploration settings
+EXPLORE_RADIUS = 5.0  # must be < MAX_RANGE
+# Default planner algorithm for auto exploration
+ALGORITHM = "prm"
+
 # PRM parameters
 N_SAMPLES = 200
 K_NEIGHBORS = 10

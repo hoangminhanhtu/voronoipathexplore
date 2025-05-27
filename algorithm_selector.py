@@ -3,6 +3,7 @@
 """Select and run a planner based on fuzzy logic."""
 
 from pathlib import Path
+from typing import Optional
 import config
 from fuzzy_utils import membership_battery
 
@@ -18,7 +19,7 @@ PLANNERS = {
 }
 
 
-def run_planner_for_scan(scan_file: str, algorithm: str | None = None) -> None:
+def run_planner_for_scan(scan_file: str, algorithm: Optional[str] = None) -> None:
     """Run the chosen planner on ``scan_file``."""
     config.LASER_FILE = Path(scan_file)
 
@@ -30,7 +31,6 @@ def run_planner_for_scan(scan_file: str, algorithm: str | None = None) -> None:
     planner = PLANNERS[algo]
     planner.LASER_FILE = config.LASER_FILE
     planner.main()
-
 
 if __name__ == "__main__":
     import sys

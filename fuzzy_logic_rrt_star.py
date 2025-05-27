@@ -3,6 +3,7 @@ import random
 import time
 from pathlib import Path
 from typing import List, Tuple
+import config
 
 from fuzzy_utils import fuzzy_neighbor_radius
 
@@ -23,22 +24,22 @@ from draw_utils import (
 )
 
 # === CONFIGURATION ===
-LASER_FILE       = Path("list_file_laser/FileLaserPoint6.js")
-MAX_RANGE        = 10.0       # max sensor range (m)
-ROBOT_DIAMETER   = 0.6        # robot diameter (m)
-ROBOT_RADIUS     = ROBOT_DIAMETER / 2
-BETA             = 0.3        # obstacle inflation radius (m)
-START            = np.array([0.0, 0.0])
-GOAL             = np.array([-3.0, -5.0])
-GOAL_BIAS        = 0.1        # 10% goal sampling
-MAX_ITERS        = 5000
-STEP_SIZE        = 0.6        # maximum extension step (m)
-NEIGHBOR_RADIUS  = 1.0        # RRT* rewiring radius (m)
-ANIM_INTERVAL_MS = 200        # ms per animation frame
+LASER_FILE       = config.LASER_FILE
+MAX_RANGE        = config.MAX_RANGE
+ROBOT_DIAMETER   = config.ROBOT_DIAMETER
+ROBOT_RADIUS     = config.ROBOT_RADIUS
+BETA             = config.BETA
+START            = config.START
+GOAL             = config.GOAL
+GOAL_BIAS        = config.GOAL_BIAS
+MAX_ITERS        = config.MAX_ITERS
+STEP_SIZE        = config.STEP_SIZE
+NEIGHBOR_RADIUS  = config.NEIGHBOR_RADIUS
+ANIM_INTERVAL_MS = config.ANIM_INTERVAL_MS
 
 # === BATTERY & REPLANNING ===
-BATTERY_CONSUMPTION_PER_STEP = 2.0   # percent battery per executed step
-X_STEP = 2                           # steps between replanning
+BATTERY_CONSUMPTION_PER_STEP = config.BATTERY_CONSUMPTION_PER_STEP
+X_STEP = config.X_STEP
 
 # === LOAD & FILTER LIDAR POINTS ===
 # Provided by ``laser_io.load_and_filter``

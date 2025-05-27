@@ -19,7 +19,7 @@ PLANNERS = {
 }
 
 
-def run_planner_for_scan(scan_file: str, algorithm: Optional[str] = None) -> None:
+def run_planner_for_scan(scan_file: str, algorithm: str | None = None) -> None:
     """Run the chosen planner on ``scan_file``."""
     config.LASER_FILE = Path(scan_file)
 
@@ -31,7 +31,6 @@ def run_planner_for_scan(scan_file: str, algorithm: Optional[str] = None) -> Non
     planner = PLANNERS[algo]
     planner.LASER_FILE = config.LASER_FILE
     planner.main()
-
 
 if __name__ == "__main__":
     import sys

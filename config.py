@@ -14,7 +14,7 @@ GOAL = np.array([-3.0, -5.0])
 EXPLORE_RADIUS = 5.0  # must be < MAX_RANGE
 
 # Default planner algorithm for auto exploration
-ALGORITHM = "rrt"
+ALGORITHM = "prm"
 
 # PRM parameters
 N_SAMPLES = 200

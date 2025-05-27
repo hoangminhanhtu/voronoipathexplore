@@ -20,7 +20,7 @@ def auto_explore() -> None:
         raise ValueError("EXPLORE_RADIUS must be less than MAX_RANGE")
 
     config.GOAL = random_goal(config.EXPLORE_RADIUS)
-    run_planner_for_scan(str(config.LASER_FILE))
+    run_planner_for_scan(str(config.LASER_FILE), config.ALGORITHM)
 
 
 if __name__ == "__main__":

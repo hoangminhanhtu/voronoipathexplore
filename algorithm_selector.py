@@ -19,7 +19,7 @@ PLANNERS = {
 }
 
 
-def run_planner_for_scan(scan_file: str, algorithm: str | None = None) -> None:
+def run_planner_for_scan(scan_file: str, algorithm: Optional[str] = None) -> None:
     """Run the chosen planner on ``scan_file``."""
     config.LASER_FILE = Path(scan_file)
 

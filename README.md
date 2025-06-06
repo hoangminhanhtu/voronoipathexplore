@@ -1,16 +1,57 @@
 # voronoipathexplore
 
-Common functionality such as LIDAR loading, β‑complex construction and drawing
-helpers has been moved into small modules:
+This repository collects a handful of path-planning experiments built on
+laser scanner data. The code focuses on constructing **β-complex** obstacle
+shapes from raw LIDAR points and exploring several planning algorithms. Most
+scripts visualise their progress using Matplotlib.
 
-- `laser_io.py` – load and optionally filter laser scan points
-- `beta_complex.py` – compute β‑complex edges
-- `draw_utils.py` – shared drawing helpers
-- `fuzzy_utils.py` – fuzzy-logic helpers for replanning decisions
+## Key modules
 
-Existing scripts continue to work and now import from these modules.
+- **`laser_io.py`** – load and optionally filter scan points from the exported
+  `.js` laser files.
+- **`beta_complex.py`** – compute β-complex edges used to inflate obstacles.
+- **`draw_utils.py`** – small drawing helpers for robots, paths and β-complexes.
+- **`fuzzy_utils.py`** – fuzzy-logic utilities used to decide when to replan
+  based on remaining battery or distance.
 
-The repository also includes an MQTT interface for the fuzzy planners:
+Existing scripts import functionality from these modules. The main planners
+implemented in the repository are:
 
-- `mqtt_planner.py` – listen for planning requests on `mqtt_config.PLAN_REQUEST_TOPIC`
-  and publish computed paths to `mqtt_config.PLAN_RESULT_TOPIC`
+- **Probabilistic Road Map (PRM)** with optional fuzzy replanning
+  (`fuzzy_logic_prm.py`).
+- **Rapidly-Exploring Random Trees (RRT)**
+  and **RRT*** with fuzzy logic (`fuzzy_logic_rrt_normal.py`,
+  `fuzzy_logic_rrt_star.py`).
+- An **algorithm selector** (`algorithm_selector.py`) which chooses among the
+  planners using simple fuzzy rules.
+- **`auto_explore.py`** which picks a random collision-free goal inside a
+  radius and then runs the selected planner.
+
+## MQTT interface
+
+The `mqtt_planner.py` script exposes the planners over MQTT. It listens on
+`mqtt_config.PLAN_REQUEST_TOPIC` for JSON messages such as
+```
+{"algorithm": "prm"}
+```
+and publishes the resulting path on `mqtt_config.PLAN_RESULT_TOPIC`.
+See `mqtt_config.py` to adjust broker settings and topic names.
+
+## Running an example
+
+Most scripts rely on the paths and parameters defined in `config.py`. To run a
+basic PRM planner with fuzzy logic enabled:
+
+```bash
+python3 fuzzy_logic_prm.py
+```
+
+To execute the MQTT interface instead:
+
+```bash
+python3 mqtt_planner.py
+```
+
+The output will open a Matplotlib window showing the β-complex obstacle shape,
+the sampled nodes and the evolving path.
+

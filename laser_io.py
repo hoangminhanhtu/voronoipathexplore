@@ -8,7 +8,7 @@ from typing import Optional
 
 import numpy as np
 
-__all__ = ["load_points", "load_and_filter"]
+__all__ = ["load_points", "load_and_filter", "points_from_dict"]
 
 
 def _load_json(js_path: Path) -> dict:
@@ -19,6 +19,24 @@ def _load_json(js_path: Path) -> dict:
             if not line.lstrip().startswith("//") and line.strip()
         )
     return json.loads(text)
+
+
+def points_from_dict(data: dict, max_range: float) -> np.ndarray:
+    """Return Nx2 array of points from a JSON-like dictionary.
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary containing ``{"laser": [{"distance": r, "angle": a}, ...]}``.
+    max_range : float
+        Maximum sensor range. Points outside this range are ignored.
+    """
+    pts = []
+    for p in data.get("laser", []):
+        r, theta = p.get("distance", 0.0), p.get("angle", 0.0)
+        if 0 < r < max_range:
+            pts.append((r * math.cos(theta), r * math.sin(theta)))
+    return np.array(pts)
 
 
 def load_points(js_path: Path, max_range: float) -> np.ndarray:

@@ -2,7 +2,7 @@ from pathlib import Path
 import numpy as np
 
 # General robot and environment settings
-LASER_FILE = Path("list_file_laser/FileLaserPoint7.js")
+LASER_FILE = Path("list_file_laser/FileLaserPoint6.js")
 MAX_RANGE = 10.0
 ROBOT_DIAMETER = 0.6
 ROBOT_RADIUS = ROBOT_DIAMETER / 2
